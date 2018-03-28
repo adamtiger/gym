@@ -70,6 +70,12 @@ class Env(object):
         """
         raise NotImplementedError
 
+    def setup(self, settings):
+        """Gives value to the starting and the goal positions.
+        In case of goal-based Atari this is important.
+        """
+        return
+
     def render(self, mode='human'):
         """Renders the environment.
 
@@ -279,6 +285,9 @@ class Wrapper(Env):
             deprecated_warn_once("%s doesn't implement 'reset' method, " % type(self) +
                 "which is required for wrappers derived directly from Wrapper. Deprecated default implementation is used.")
             return self.env.reset(**kwargs)
+    
+    def setup(self, settings):
+        self.env.setup(settings)  
 
     def render(self, mode='human'):
         return self.env.render(mode)
