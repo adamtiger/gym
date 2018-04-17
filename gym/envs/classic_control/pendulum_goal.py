@@ -23,6 +23,10 @@ class PendulumGoalEnv(gym.Env):
         self.goal = [np.cos(0.0), np.sin(0.0), 0.0]
         self.n = 0
 
+        self.g = 10.
+        self.m = 1.
+        self.l = 1.
+
         self.seed()
 
     def seed(self, seed=None):
@@ -31,10 +35,6 @@ class PendulumGoalEnv(gym.Env):
 
     def step(self,u):
         th, thdot = self.state # th := theta
-
-        self.g = 10.
-        self.m = 1.
-        self.l = 1.
         dt = self.dt
 
         u = np.clip(u, -self.max_torque, self.max_torque)[0]
