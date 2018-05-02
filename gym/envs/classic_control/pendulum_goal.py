@@ -2,7 +2,9 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 import numpy as np
+import math
 from os import path
+import time
 
 class PendulumGoalEnv(gym.Env):
     metadata = {
@@ -20,7 +22,7 @@ class PendulumGoalEnv(gym.Env):
         self.action_space = spaces.Box(low=-self.max_torque, high=self.max_torque, shape=(1,))
         self.observation_space = spaces.Box(low=-high, high=high)
 
-        self.goal = [np.cos(0.0), np.sin(0.0), 0.0]
+        self.goal = [0.0, 0.0]
         self.n = 0
 
         self.g = 10.
@@ -39,30 +41,46 @@ class PendulumGoalEnv(gym.Env):
 
         u = np.clip(u, -self.max_torque, self.max_torque)[0]
         self.last_u = u # for rendering
-
+        
         newthdot = thdot + (-3*self.g/(2*self.l) * np.sin(th + np.pi) + 3./(self.m*self.l**2)*u) * dt
         newth = th + newthdot*dt
         newthdot = np.clip(newthdot, -self.max_speed, self.max_speed) #pylint: disable=E1111
-
+        '''
         self.state = np.array([newth, newthdot])
         self.n += 1
 
-        e0 = self._calc_costs(th, thdot)
-        e1 = self._calc_costs(newth, newthdot)
-        costs = abs(e1 - e0)
+        costs = abs(3./(self.m*self.l**2)*u) * dt
 
-        target_achieved = abs(self.state[0] - self.goal[0]) < 0.02 and abs(self.state[1] - self.goal[1]) < 0.05
-        iteration_too_much = self.n > 5000
+        target_achieved = newth > self.goal[0] and th < self.goal[0] #and abs(self.state[1] - self.goal[1]) < 0.05
+        iteration_too_much = self.n > 2550
         if target_achieved:
             costs = -self.min_costs
         elif iteration_too_much:
-            costs = 10 * self.min_costs
+            costs = 0.0#10 * self.min_costs
+       
+        dth = math.pi/360.0
+        newth = th + dth * (1.0 if thdot > 0.0 else -1.0)
+        newthdot = thdot + (self.m * self.g * self.l / 2.0 * np.sin(np.pi - th) + u) / (self.m * self.l**2 * 1/3.0) * dth / max(thdot, 0.01)
+        
+        newthdot = np.clip(newthdot, -self.max_speed, self.max_speed) #pylint: disable=E1111
+        '''
+        self.state = np.array([newth, newthdot])
+        self.n += 1
+        
+        e0 = self._calc_costs(th, thdot)
+        e1 = self._calc_costs(newth, newthdot)
+        costs = -abs(th - math.pi)**2 * 0.001 if abs(th - math.pi) < abs(newth - math.pi) else 0.0 #0.5 #-abs(th - math.pi) * 0.001
+        
+        target_achieved = newth >= self.goal[0] and th <= self.goal[0] and abs(self.state[1] - self.goal[1]) < 2.0
+        if target_achieved:
+            costs = -100
+        
+        done = target_achieved
 
-        done = target_achieved or iteration_too_much
-
-        return self._get_obs(), costs, done, {}
+        return self._get_obs(), costs, done, {'min_cost': self.min_costs}
 
     def reset(self):
+        self.n = 0
         high = np.array([np.pi, 1])
         self.state = self.np_random.uniform(low=-high, high=high)
         self.last_u = None
@@ -115,3 +133,5 @@ class PendulumGoalEnv(gym.Env):
 
 def angle_normalize(x):
     return (((x+np.pi) % (2*np.pi)) - np.pi)
+
+
