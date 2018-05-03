@@ -100,7 +100,7 @@ register(
 register(
     id='PendulumGoal-v0',
     entry_point='gym.envs.classic_control:PendulumGoalEnv',
-    max_episode_steps=200,
+    max_episode_steps=100000,
 )
 
 register(
